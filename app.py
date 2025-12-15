@@ -40,6 +40,16 @@ html, body, [data-testid="stAppViewContainer"] {
 #MainMenu, footer {
     visibility: hidden;
 }
+/* MAKE HEADER TRANSPARENT & KEEP IT ALIVE */
+header[data-testid="stHeader"] {
+    background: rgba(0, 0, 0, 0) !important;
+    backdrop-filter: blur(6px);
+}
+
+/* REMOVE HEADER BORDER */
+header[data-testid="stHeader"]::after {
+    background: none;
+}
 
 
 /* GLASS CARD */

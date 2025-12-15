@@ -152,6 +152,8 @@ st.sidebar.image(
     width=120
 )
 st.sidebar.markdown("---")
+# Sidebar Alert Placeholder
+sidebar_alert = st.sidebar.empty()
 
 page = st.sidebar.radio(
     "Navigation",
@@ -312,8 +314,7 @@ elif page == "🔍 Image":
         boxes = results[0].boxes.cls.tolist()
 
         no_helmet = any(
-            "helmet" in detected_classes[int(c)].lower()
-            and "no" in detected_classes[int(c)].lower()
+            detected_classes[int(c)] == "No-Helmet"
             for c in boxes
         )
 
@@ -324,7 +325,17 @@ elif page == "🔍 Image":
             </div>
             """, unsafe_allow_html=True)
 
+            sidebar_alert.markdown("""
+            🚨 **ALERT**
+            
+            Worker detected  
+            **without helmet**
+            """)
+        else:
+            sidebar_alert.empty()
+
         st.image(results[0].plot(), use_column_width=True)
+
 
 
 # ==================================================

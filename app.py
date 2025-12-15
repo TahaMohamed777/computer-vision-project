@@ -25,18 +25,6 @@ html, body, [data-testid="stAppViewContainer"] {
     width: 100%;
     overflow-x: hidden;
 }
-.counter-box {
-    background: linear-gradient(135deg, #263238, #37474F);
-    color: #FFD369;
-    padding: 18px 25px;
-    border-radius: 16px;
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    text-align: center;
-}
-
 
 /* BACKGROUND */
 .stApp {
@@ -118,16 +106,29 @@ button[aria-label="Start"],
 button[aria-label="Select device"] {
     display: none !important;
 }
-.alert-box {
-    background: linear-gradient(135deg, #b71c1c, #ff5252);
+.counter-box {
+    background: linear-gradient(135deg, #263238, #37474f);
+    color: #FFD369;
+    padding: 18px 25px;
+    border-radius: 16px;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 18px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.alert-unified {
+    background: linear-gradient(135deg, #c62828, #ff5252);
     color: white;
     padding: 18px 25px;
     border-radius: 16px;
     font-size: 18px;
     font-weight: bold;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     box-shadow: 0 10px 30px rgba(255,0,0,0.4);
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -325,47 +326,44 @@ elif page == "🔍 Image":
         detected_classes = results[0].names
         boxes = results[0].boxes.cls.tolist()
 
-        # 🔴 No Helmet Counter
+        # 🧮 Count violations
         no_helmet_count = sum(
             1 for c in boxes
             if "helmet" in detected_classes[int(c)].lower()
             and "no" in detected_classes[int(c)].lower()
         )
 
-        # 🦺 No Vest Counter
         no_vest_count = sum(
             1 for c in boxes
             if "vest" in detected_classes[int(c)].lower()
             and "no" in detected_classes[int(c)].lower()
         )
 
-        # 🚨 Alerts
-        if no_helmet_count > 0:
+        total_violations = no_helmet_count + no_vest_count
+
+        # 🔢 Unified Counter
+        if total_violations > 0:
             st.markdown(f"""
             <div class="counter-box">
-            🚨 No Helmet Violations: {no_helmet_count}
+            🚨 Total Safety Violations: {total_violations}
             </div>
             """, unsafe_allow_html=True)
 
-            st.markdown("""
-            <div class="alert-box">
-            🚨 SAFETY ALERT: Worker detected without helmet!
-            </div>
-            """, unsafe_allow_html=True)
+            reasons = []
+            if no_helmet_count > 0:
+                reasons.append(f"No Helmet ({no_helmet_count})")
+            if no_vest_count > 0:
+                reasons.append(f"No Vest ({no_vest_count})")
 
-        if no_vest_count > 0:
+            reason_text = " & ".join(reasons)
+
             st.markdown(f"""
-            <div class="counter-box" style="background:linear-gradient(135deg,#1a237e,#536dfe);">
-            🦺 No Vest Violations: {no_vest_count}
+            <div class="alert-unified">
+            🚨 SAFETY ALERT: Workers detected with violations → {reason_text}
             </div>
             """, unsafe_allow_html=True)
 
-            st.markdown("""
-            <div class="alert-box" style="background:linear-gradient(135deg,#0d47a1,#42a5f5);">
-            🦺 SAFETY ALERT: Worker detected without safety vest!
-            </div>
-            """, unsafe_allow_html=True)
-
+        # 🖼️ Show image
         st.image(results[0].plot(), use_column_width=True)
 
 # ==================================================

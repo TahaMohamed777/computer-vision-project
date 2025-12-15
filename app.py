@@ -484,14 +484,16 @@ elif page == "🎥 Video":
             "(codec limitation on Streamlit Cloud)."
         )
 # ==================================================
-# WEBCAM PAGE
+# WEBCAM PAGE (FAST & STABLE)
 # ==================================================
 elif page == "📷 Webcam":
 
     st.markdown("""
     <div class="glass">
         <h2>📷 Real-Time Webcam Detection</h2>
-        <p>Allow camera access to start live PPE detection.</p>
+        <p>
+        Live PPE detection optimized for real-time performance.
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -499,19 +501,21 @@ elif page == "📷 Webcam":
     <div class="upload-box">
         <div class="upload-icon">🔴</div>
         <div class="upload-text">Live Camera Mode</div>
-        <div class="upload-hint">Camera permission will be requested</div>
+        <div class="upload-hint">
+        Real-time detection • No counters • No alerts
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
+    # 🚀 FAST YOLO TRANSFORMER (NO UI LOGIC INSIDE)
     class YOLOTransformer(VideoTransformerBase):
         def transform(self, frame):
             img = frame.to_ndarray(format="bgr24")
-            return model(img, conf=confidence)[0].plot()
+            results = model(img, conf=confidence)
+            return results[0].plot()
 
     webrtc_streamer(
         key="webcam",
         video_transformer_factory=YOLOTransformer,
         media_stream_constraints={"video": True, "audio": False},
     )
-
-

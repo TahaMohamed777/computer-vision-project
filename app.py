@@ -312,7 +312,8 @@ elif page == "🔍 Image":
         boxes = results[0].boxes.cls.tolist()
 
         no_helmet = any(
-            detected_classes[int(c)] == "No Helmet"
+            "helmet" in detected_classes[int(c)].lower()
+            and "no" in detected_classes[int(c)].lower()
             for c in boxes
         )
 
@@ -324,6 +325,7 @@ elif page == "🔍 Image":
             """, unsafe_allow_html=True)
 
         st.image(results[0].plot(), use_column_width=True)
+
 
 # ==================================================
 # VIDEO PAGE

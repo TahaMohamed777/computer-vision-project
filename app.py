@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 # ==================================================
-# GLOBAL STYLE + BACKGROUND
+# GLOBAL CSS (CSS ONLY)
 # ==================================================
 st.markdown("""
 <style>
@@ -36,21 +36,32 @@ html, body, [data-testid="stAppViewContainer"] {
     background-attachment: fixed;
 }
 
-/* REMOVE STREAMLIT DEFAULT UI */
+/* REMOVE MENU & FOOTER */
 #MainMenu, footer {
     visibility: hidden;
 }
-/* MAKE HEADER TRANSPARENT & KEEP IT ALIVE */
+
+/* HEADER TRANSPARENT */
 header[data-testid="stHeader"] {
-    background: rgba(0, 0, 0, 0) !important;
+    background: rgba(0,0,0,0) !important;
     backdrop-filter: blur(6px);
 }
-
-/* REMOVE HEADER BORDER */
 header[data-testid="stHeader"]::after {
     background: none;
 }
 
+/* SIDEBAR */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #ffb74d, #f57c00, #1c1c1c);
+    transition: all 0.35s ease-in-out;
+}
+section[data-testid="stSidebar"]:hover {
+    box-shadow: 8px 0 25px rgba(0,0,0,0.4);
+}
+section[data-testid="stSidebar"] * {
+    color: black !important;
+    font-weight: 600;
+}
 
 /* GLASS CARD */
 .glass {
@@ -60,15 +71,6 @@ header[data-testid="stHeader"]::after {
     margin-bottom: 30px;
     box-shadow: 0 15px 40px rgba(0,0,0,0.6);
     color: white;
-}
-
-/* SIDEBAR */
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #ffb74d, #f57c00, #1c1c1c);
-}
-section[data-testid="stSidebar"] * {
-    color: black !important;
-    font-weight: 600;
 }
 
 /* TITLES */
@@ -81,9 +83,7 @@ img, video {
     box-shadow: 0 15px 35px rgba(0,0,0,0.6);
 }
 
-/* ===========================
-   CUSTOM UPLOAD BOX
-=========================== */
+/* UPLOAD BOX */
 .upload-box {
     border: 2px dashed rgba(255,255,255,0.4);
     border-radius: 18px;
@@ -98,33 +98,50 @@ img, video {
     border-color: #FFD369;
     background: rgba(20,25,30,0.85);
 }
-.upload-icon {
-    font-size: 42px;
-    margin-bottom: 10px;
-}
-.upload-text {
-    font-size: 17px;
-    font-weight: bold;
-}
-.upload-hint {
-    font-size: 13px;
-    opacity: 0.7;
-}
 
-/* ===========================
-   HIDE WEBRTC WHITE BAR
-=========================== */
-.webrtc-media-container + div {
-    display: none !important;
-}
-div[data-testid="stVideo"] ~ div {
-    display: none !important;
-}
+/* HIDE WEBRTC BAR */
+.webrtc-media-container + div,
+div[data-testid="stVideo"] ~ div,
 button[aria-label="Start"],
 button[aria-label="Select device"] {
     display: none !important;
 }
+.alert-box {
+    background: linear-gradient(135deg, #b71c1c, #ff5252);
+    color: white;
+    padding: 18px 25px;
+    border-radius: 16px;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(255,0,0,0.4);
+}
 </style>
+""", unsafe_allow_html=True)
+
+# ==================================================
+# NAVBAR (HTML ONLY)
+# ==================================================
+st.markdown("""
+<div style="
+position: sticky;
+top: 0;
+z-index: 999;
+background: rgba(15,15,15,0.85);
+backdrop-filter: blur(10px);
+padding: 14px 30px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+border-bottom: 1px solid rgba(255,255,255,0.15);
+">
+    <div style="font-size:20px; font-weight:800; color:#FFD369;">
+        🏗️ Construction Safety AI
+    </div>
+    <div style="font-size:14px; color:#ccc;">
+        YOLOv11 • Streamlit • Computer Vision
+    </div>
+</div>
 """, unsafe_allow_html=True)
 
 # ==================================================
@@ -142,10 +159,8 @@ page = st.sidebar.radio(
 )
 
 confidence = st.sidebar.slider(
-    "Confidence Threshold",
-    0.1, 1.0, 0.5, 0.05
+    "Confidence Threshold", 0.1, 1.0, 0.5, 0.05
 )
-
 # ==================================================
 # LOAD MODEL
 # ==================================================
@@ -288,10 +303,27 @@ elif page == "🔍 Image":
     """, unsafe_allow_html=True)
 
     img_file = st.file_uploader("", ["jpg", "png", "jpeg"], label_visibility="collapsed")
+
     if img_file:
         img = np.array(Image.open(img_file))
-        st.image(model(img, conf=confidence)[0].plot(), use_column_width=True)
-    
+        results = model(img, conf=confidence)
+
+        detected_classes = results[0].names
+        boxes = results[0].boxes.cls.tolist()
+
+        no_helmet = any(
+            detected_classes[int(c)] == "No Helmet"
+            for c in boxes
+        )
+
+        if no_helmet:
+            st.markdown("""
+            <div class="alert-box">
+            🚨 SAFETY ALERT: Worker detected without helmet!
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.image(results[0].plot(), use_column_width=True)
 
 # ==================================================
 # VIDEO PAGE

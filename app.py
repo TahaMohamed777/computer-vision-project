@@ -503,44 +503,10 @@ elif page == "📷 Webcam":
     </div>
     """, unsafe_allow_html=True)
 
-    # ✅ INIT SESSION STATE
-    if "webcam_violations" not in st.session_state:
-        st.session_state.webcam_violations = 0
-
-    # ✅ UI placeholders
-    webcam_counter = st.empty()
-    webcam_alert = st.empty()
-
-    # ✅ Transformer
     class YOLOTransformer(VideoTransformerBase):
         def transform(self, frame):
             img = frame.to_ndarray(format="bgr24")
-            results = model(img, conf=confidence)
-
-            detected_classes = results[0].names
-            boxes = results[0].boxes.cls.tolist()
-
-            violations = sum(
-                1 for c in boxes
-                if "no" in detected_classes[int(c)].lower()
-            )
-
-            if violations > 0:
-                st.session_state.webcam_violations += violations
-
-                webcam_counter.markdown(f"""
-                <div class="counter-box">
-                🚨 Total Violations: {st.session_state.webcam_violations}
-                </div>
-                """, unsafe_allow_html=True)
-
-                webcam_alert.markdown("""
-                <div class="alert-unified">
-                🚨 LIVE SAFETY ALERT
-                </div>
-                """, unsafe_allow_html=True)
-
-            return results[0].plot()
+            return model(img, conf=confidence)[0].plot()
 
     webrtc_streamer(
         key="webcam",
@@ -548,10 +514,4 @@ elif page == "📷 Webcam":
         media_stream_constraints={"video": True, "audio": False},
     )
 
-    # 🔄 Reset button
-    if st.button("🔄 Reset Violation Count"):
-        st.session_state.webcam_violations = 0
-        webcam_counter.empty()
-        webcam_alert.empty()
-        st.rerun()
 

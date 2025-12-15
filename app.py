@@ -299,9 +299,6 @@ if page == "🏠 Home":
 # ==================================================
 # IMAGE PAGE
 # ==================================================
-# ==================================================
-# IMAGE PAGE
-# ==================================================
 elif page == "🔍 Image":
 
     st.markdown("""
@@ -328,18 +325,25 @@ elif page == "🔍 Image":
         detected_classes = results[0].names
         boxes = results[0].boxes.cls.tolist()
 
-        # ✅ Count No-Helmet violations
+        # 🔴 No Helmet Counter
         no_helmet_count = sum(
             1 for c in boxes
             if "helmet" in detected_classes[int(c)].lower()
             and "no" in detected_classes[int(c)].lower()
         )
 
-        # ✅ Show counter + alert
+        # 🦺 No Vest Counter
+        no_vest_count = sum(
+            1 for c in boxes
+            if "vest" in detected_classes[int(c)].lower()
+            and "no" in detected_classes[int(c)].lower()
+        )
+
+        # 🚨 Alerts
         if no_helmet_count > 0:
             st.markdown(f"""
             <div class="counter-box">
-            🚨 Violations Detected: {no_helmet_count} (No Helmet)
+            🚨 No Helmet Violations: {no_helmet_count}
             </div>
             """, unsafe_allow_html=True)
 
@@ -349,8 +353,20 @@ elif page == "🔍 Image":
             </div>
             """, unsafe_allow_html=True)
 
-        st.image(results[0].plot(), use_column_width=True)
+        if no_vest_count > 0:
+            st.markdown(f"""
+            <div class="counter-box" style="background:linear-gradient(135deg,#1a237e,#536dfe);">
+            🦺 No Vest Violations: {no_vest_count}
+            </div>
+            """, unsafe_allow_html=True)
 
+            st.markdown("""
+            <div class="alert-box" style="background:linear-gradient(135deg,#0d47a1,#42a5f5);">
+            🦺 SAFETY ALERT: Worker detected without safety vest!
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.image(results[0].plot(), use_column_width=True)
 
 # ==================================================
 # VIDEO PAGE

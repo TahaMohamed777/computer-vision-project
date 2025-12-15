@@ -340,6 +340,19 @@ elif page == "🔍 Image":
         )
 
         total_violations = no_helmet_count + no_vest_count
+        safe_count = max(len(boxes) - total_violations, 0)
+
+        st.markdown(f"""
+        <div style="display:flex; gap:20px; margin-bottom:20px;">
+            <div class="counter-box" style="flex:1;">
+                ✅ Safe: {safe_count}
+            </div>
+            <div class="counter-box" style="flex:1;">
+                🚨 Violations: {total_violations}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
 
         # 🔢 Unified Counter
         if total_violations > 0:
@@ -362,9 +375,6 @@ elif page == "🔍 Image":
             🚨 SAFETY ALERT: Workers detected with violations → {reason_text}
             </div>
             """, unsafe_allow_html=True)
-        else:
-            st.success("✅ All workers are following safety rules.")
-
 
         # 🖼️ Show image
         st.image(results[0].plot(), use_column_width=True)
@@ -404,6 +414,11 @@ elif page == "🎥 Video":
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
         frame_count = 0
         SKIP_FRAMES = 5
+        no_helmet_total = 0
+        no_vest_total = 0
+        alert_placeholder = st.empty()
+        counter_placeholder = st.empty()
+
 
         while True:
             ret, frame = cap.read()
@@ -417,6 +432,39 @@ elif page == "🎥 Video":
 
             frame_resized = cv2.resize(frame, (416, 416))
             results = model(frame_resized, conf=confidence, verbose=False)
+            detected_classes = results[0].names
+            boxes = results[0].boxes.cls.tolist()
+
+            frame_no_helmet = sum(
+                1 for c in boxes
+                if "helmet" in detected_classes[int(c)].lower()
+                and "no" in detected_classes[int(c)].lower()
+            )
+
+            frame_no_vest = sum(
+                1 for c in boxes
+                if "vest" in detected_classes[int(c)].lower()
+                and "no" in detected_classes[int(c)].lower()
+            )
+
+            no_helmet_total += frame_no_helmet
+            no_vest_total += frame_no_vest
+            total = no_helmet_total + no_vest_total
+
+            if total > 0:
+                counter_placeholder.markdown(f"""
+                <div class="counter-box">
+                🚨 Total Violations: {total}
+                </div>
+                """, unsafe_allow_html=True)
+
+                alert_placeholder.markdown(f"""
+                <div class="alert-unified">
+                🚨 SAFETY ALERT: Violations detected in video
+                </div>
+                """, unsafe_allow_html=True)
+
+
             annotated = results[0].plot()
 
             frame_placeholder.image(
@@ -465,3 +513,5 @@ elif page == "📷 Webcam":
         video_transformer_factory=YOLOTransformer,
         media_stream_constraints={"video": True, "audio": False},
     )
+
+

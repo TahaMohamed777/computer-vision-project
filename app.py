@@ -362,6 +362,9 @@ elif page == "🔍 Image":
             🚨 SAFETY ALERT: Workers detected with violations → {reason_text}
             </div>
             """, unsafe_allow_html=True)
+        else:
+            st.success("✅ All workers are following safety rules.")
+
 
         # 🖼️ Show image
         st.image(results[0].plot(), use_column_width=True)

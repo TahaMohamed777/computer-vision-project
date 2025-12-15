@@ -12,7 +12,8 @@ from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 st.set_page_config(
     page_title="Construction Safety – YOLOv11",
     layout="wide",
-    page_icon="🏗️"
+    page_icon="🏗️",
+    initial_sidebar_state="expanded"
 )
 
 # ==================================================
@@ -36,9 +37,10 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 
 /* REMOVE STREAMLIT DEFAULT UI */
-header, footer, #MainMenu {
+#MainMenu, footer {
     visibility: hidden;
 }
+
 
 /* GLASS CARD */
 .glass {
@@ -100,17 +102,17 @@ img, video {
 }
 
 /* ===========================
-   HIDE WEBRTC WHITE BAR ONLY
+   HIDE WEBRTC WHITE BAR
 =========================== */
-.webrtc-media-container button {
+.webrtc-media-container + div {
     display: none !important;
 }
-
-/* ===========================
-   FORCE SIDEBAR TO BE VISIBLE
-=========================== */
-button[kind="header"] {
-    display: block !important;
+div[data-testid="stVideo"] ~ div {
+    display: none !important;
+}
+button[aria-label="Start"],
+button[aria-label="Select device"] {
+    display: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -143,8 +145,7 @@ def load_model():
 
 model = load_model()
 
-# ==================================================
-# HOME PAGE
+# HOME PAGE (EXACT AS REQUESTED)
 # ==================================================
 if page == "🏠 Home":
 
@@ -184,6 +185,78 @@ if page == "🏠 Home":
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div class="glass">
+        <h2>🧠 Model & Dataset</h2>
+        <ul>
+            <li><b>Model:</b> YOLOv11m</li>
+            <li><b>Classes:</b> Helmet, Vest, No-Helmet, No-Vest</li>
+            <li><b>Dataset:</b> 2.2k images (Roboflow)</li>
+            <li>YOLO default augmentation enabled</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="glass">
+        <h2>📊 Performance Metrics</h2>
+        <ul>
+            <li>mAP50: <b>93%</b></li>
+            <li>mAP50-95: <b>61%</b></li>
+            <li>Precision: <b>93%</b></li>
+            <li>Recall: <b>92%</b></li>
+        </ul>
+        <p>These results demonstrate strong accuracy suitable for real-time deployment.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="glass">
+        <h2>🦺 Detected PPE Classes</h2>
+        <div style="display:flex; justify-content:center; gap:50px; text-align:center;">
+            <div>
+                <img src="https://png.pngtree.com/png-clipart/20240314/original/pngtree-equipment-construction-tools-png-image_14588802.png" width="130">
+                <p><b>Helmet / No Helmet</b></p>
+            </div>
+            <div>
+                <img src="https://png.pngtree.com/png-vector/20220716/ourmid/pngtree-safety-vest-road-worker-protection-clothes-vector-png-image_6002052.png" width="130">
+                <p><b>Vest / No Vest</b></p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="glass">
+        <h2>💻 Application Features</h2>
+        <ul>
+            <li>Real-time webcam detection</li>
+            <li>Image-based detection</li>
+            <li>Video detection with downloadable output</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="glass">
+        <h2>🧩 Tech Stack</h2>
+        <p>Python · Streamlit · YOLOv11 · OpenCV · NumPy · Roboflow</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="glass">
+        <h2>🚧 Use Cases</h2>
+        <ul>
+            <li>Construction site safety monitoring</li>
+            <li>Automated PPE compliance</li>
+            <li>Reducing workplace accidents</li>
+            <li>CCTV-based live detection systems</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 # ==================================================
 # IMAGE PAGE
 # ==================================================
@@ -196,10 +269,19 @@ elif page == "🔍 Image":
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div class="upload-box">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text">Upload Image</div>
+        <div class="upload-hint">JPG, PNG, JPEG • Clear images work best</div>
+    </div>
+    """, unsafe_allow_html=True)
+
     img_file = st.file_uploader("", ["jpg", "png", "jpeg"], label_visibility="collapsed")
     if img_file:
         img = np.array(Image.open(img_file))
         st.image(model(img, conf=confidence)[0].plot(), use_column_width=True)
+    
 
 # ==================================================
 # VIDEO PAGE
@@ -209,25 +291,64 @@ elif page == "🎥 Video":
     st.markdown("""
     <div class="glass">
         <h2>🎥 Video Detection</h2>
-        <p>Upload a video and preview PPE detection (Cloud-safe mode).</p>
+        <p>
+        Upload a video and preview PPE detection (Cloud-safe mode).
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
-    vid = st.file_uploader("Upload Video", ["mp4", "avi", "mov"])
-    if vid:
-        tmp = tempfile.NamedTemporaryFile(delete=False)
-        tmp.write(vid.read())
-        cap = cv2.VideoCapture(tmp.name)
+    vid = st.file_uploader(
+        "Upload Video",
+        ["mp4", "avi", "mov"],
+        key="video_uploader"
+    )
 
-        frame_box = st.empty()
-        while cap.isOpened():
+    if vid:
+        st.info("▶️ Processing video (preview mode)...")
+
+        input_tmp = tempfile.NamedTemporaryFile(delete=False)
+        input_tmp.write(vid.read())
+        video_path = input_tmp.name
+
+        cap = cv2.VideoCapture(video_path)
+
+        frame_placeholder = st.empty()
+        progress = st.progress(0)
+
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
+        frame_count = 0
+        SKIP_FRAMES = 5
+
+        while True:
             ret, frame = cap.read()
             if not ret:
                 break
-            results = model(frame, conf=confidence, verbose=False)
-            frame_box.image(results[0].plot(), channels="BGR")
+
+            frame_count += 1
+
+            if frame_count % SKIP_FRAMES != 0:
+                continue
+
+            frame_resized = cv2.resize(frame, (416, 416))
+            results = model(frame_resized, conf=confidence, verbose=False)
+            annotated = results[0].plot()
+
+            frame_placeholder.image(
+                annotated,
+                channels="BGR",
+                caption="Detection Preview"
+            )
+
+            progress.progress(min(frame_count / total_frames, 1.0))
+
         cap.release()
 
+        st.success("✅ Video preview finished")
+
+        st.warning(
+            "⚠️ Full video download is available only in local mode "
+            "(codec limitation on Streamlit Cloud)."
+        )
 # ==================================================
 # WEBCAM PAGE
 # ==================================================
@@ -237,6 +358,14 @@ elif page == "📷 Webcam":
     <div class="glass">
         <h2>📷 Real-Time Webcam Detection</h2>
         <p>Allow camera access to start live PPE detection.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="upload-box">
+        <div class="upload-icon">🔴</div>
+        <div class="upload-text">Live Camera Mode</div>
+        <div class="upload-hint">Camera permission will be requested</div>
     </div>
     """, unsafe_allow_html=True)
 

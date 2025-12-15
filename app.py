@@ -289,46 +289,33 @@ elif page == "🎥 Video":
     st.markdown("""
     <div class="glass">
         <h2>🎥 Video Detection</h2>
-        <p>Upload a video and get a detected output video.</p>
+        <p>
+        Upload a video and preview PPE detection (Cloud-safe mode).
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
-    vid = st.file_uploader("Upload Video", ["mp4", "avi", "mov"])
+    vid = st.file_uploader(
+        "Upload Video",
+        ["mp4", "avi", "mov"],
+        key="video_uploader"
+    )
 
     if vid:
-        st.info("⏳ Processing video… please wait")
+        st.info("▶️ Processing video (preview mode)...")
 
-        # حفظ الفيديو المدخل
-        input_tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+        input_tmp = tempfile.NamedTemporaryFile(delete=False)
         input_tmp.write(vid.read())
-        input_path = input_tmp.name
+        video_path = input_tmp.name
 
-        cap = cv2.VideoCapture(input_path)
+        cap = cv2.VideoCapture(video_path)
 
-        if not cap.isOpened():
-            st.error("❌ Failed to open input video")
-            st.stop()
+        frame_placeholder = st.empty()
+        progress = st.progress(0)
 
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        if fps == 0:
-            fps = 25
-
-        width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-        output_path = "detected_output.mp4"
-
-        # ✅ codec متوافق مع كل المشغلات
-        fourcc = cv2.VideoWriter_fourcc(*"avc1")  # H.264
-        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-
-        if not out.isOpened():
-            st.error("❌ Failed to create output video")
-            cap.release()
-            st.stop()
-
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
         frame_count = 0
-        SKIP_FRAMES = 3
+        SKIP_FRAMES = 5
 
         while True:
             ret, frame = cap.read()
@@ -338,32 +325,28 @@ elif page == "🎥 Video":
             frame_count += 1
 
             if frame_count % SKIP_FRAMES != 0:
-                out.write(frame)
                 continue
 
-            resized = cv2.resize(frame, (640, 640))
-            results = model(resized, conf=confidence)
+            frame_resized = cv2.resize(frame, (416, 416))
+            results = model(frame_resized, conf=confidence, verbose=False)
             annotated = results[0].plot()
-            annotated = cv2.resize(annotated, (width, height))
 
-            out.write(annotated)
-
-        cap.release()
-        out.release()
-
-        st.success("✅ Video processed successfully")
-
-        # عرض الفيديو
-        st.video(output_path)
-
-        with open(output_path, "rb") as f:
-            st.download_button(
-                "⬇️ Download detected video",
-                f,
-                file_name="detected_video.mp4",
-                mime="video/mp4"
+            frame_placeholder.image(
+                annotated,
+                channels="BGR",
+                caption="Detection Preview"
             )
 
+            progress.progress(min(frame_count / total_frames, 1.0))
+
+        cap.release()
+
+        st.success("✅ Video preview finished")
+
+        st.warning(
+            "⚠️ Full video download is available only in local mode "
+            "(codec limitation on Streamlit Cloud)."
+        )
 # ==================================================
 # WEBCAM PAGE
 # ==================================================

@@ -25,6 +25,18 @@ html, body, [data-testid="stAppViewContainer"] {
     width: 100%;
     overflow-x: hidden;
 }
+.counter-box {
+    background: linear-gradient(135deg, #263238, #37474F);
+    color: #FFD369;
+    padding: 18px 25px;
+    border-radius: 16px;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    text-align: center;
+}
+
 
 /* BACKGROUND */
 .stApp {
@@ -152,6 +164,8 @@ st.sidebar.image(
     width=120
 )
 st.sidebar.markdown("---")
+# Sidebar Alert Placeholder
+sidebar_alert = st.sidebar.empty()
 
 page = st.sidebar.radio(
     "Navigation",
@@ -285,6 +299,9 @@ if page == "🏠 Home":
 # ==================================================
 # IMAGE PAGE
 # ==================================================
+# ==================================================
+# IMAGE PAGE
+# ==================================================
 elif page == "🔍 Image":
 
     st.markdown("""
@@ -311,13 +328,21 @@ elif page == "🔍 Image":
         detected_classes = results[0].names
         boxes = results[0].boxes.cls.tolist()
 
-        no_helmet = any(
-            "helmet" in detected_classes[int(c)].lower()
+        # ✅ Count No-Helmet violations
+        no_helmet_count = sum(
+            1 for c in boxes
+            if "helmet" in detected_classes[int(c)].lower()
             and "no" in detected_classes[int(c)].lower()
-            for c in boxes
         )
 
-        if no_helmet:
+        # ✅ Show counter + alert
+        if no_helmet_count > 0:
+            st.markdown(f"""
+            <div class="counter-box">
+            🚨 Violations Detected: {no_helmet_count} (No Helmet)
+            </div>
+            """, unsafe_allow_html=True)
+
             st.markdown("""
             <div class="alert-box">
             🚨 SAFETY ALERT: Worker detected without helmet!

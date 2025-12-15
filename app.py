@@ -7,7 +7,7 @@ from PIL import Image
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
 # ==================================================
-# PAGE CONFIG
+# PAGE CONFIG (SIDEBAR ALWAYS VISIBLE)
 # ==================================================
 st.set_page_config(
     page_title="Construction Safety – YOLOv11",
@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 # ==================================================
-# GLOBAL STYLE
+# GLOBAL STYLE + BACKGROUND
 # ==================================================
 st.markdown("""
 <style>
@@ -26,6 +26,7 @@ html, body, [data-testid="stAppViewContainer"] {
     overflow-x: hidden;
 }
 
+/* BACKGROUND */
 .stApp {
     background-image:
     linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
@@ -35,28 +36,42 @@ html, body, [data-testid="stAppViewContainer"] {
     background-attachment: fixed;
 }
 
+/* REMOVE STREAMLIT DEFAULT UI */
 header, footer, #MainMenu {
     visibility: hidden;
 }
 
+/* GLASS CARD */
 .glass {
     background: rgba(20, 25, 30, 0.82);
     border-radius: 22px;
-    padding: 32px;
+    padding: 35px;
     margin-bottom: 30px;
     box-shadow: 0 15px 40px rgba(0,0,0,0.6);
     color: white;
 }
 
+/* SIDEBAR */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #ffb74d, #f57c00, #1c1c1c);
+}
+section[data-testid="stSidebar"] * {
+    color: black !important;
+    font-weight: 600;
+}
+
+/* TITLES */
 h1 { text-align:center; color:#FFD369; font-weight:800; }
 h2 { color:#FFCC80; }
 
+/* FIX PNG VISIBILITY */
 img {
     background: rgba(255,255,255,0.95);
     padding: 10px;
     border-radius: 14px;
 }
 
+/* UPLOAD BOX */
 .upload-box {
     border: 2px dashed rgba(255,255,255,0.4);
     border-radius: 18px;
@@ -65,14 +80,6 @@ img {
     color: white;
     background: rgba(20,25,30,0.65);
     margin-bottom: 20px;
-}
-
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #ffb74d, #f57c00, #1c1c1c);
-}
-section[data-testid="stSidebar"] * {
-    color: black !important;
-    font-weight: 600;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -105,47 +112,20 @@ def load_model():
 model = load_model()
 
 # ==================================================
-# HELPER: DETECTION SUMMARY
-# ==================================================
-def show_summary(results):
-    names = results[0].names
-    boxes = results[0].boxes
-    counts = {}
-
-    for cls in boxes.cls.tolist():
-        name = names[int(cls)]
-        counts[name] = counts.get(name, 0) + 1
-
-    st.markdown("<div class='glass'><h3>📊 Detection Summary</h3>", unsafe_allow_html=True)
-    if not counts:
-        st.write("✅ No violations detected.")
-    else:
-        for k, v in counts.items():
-            icon = "⚠️" if "No" in k else "✅"
-            st.write(f"{icon} **{k}**: {v}")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ==================================================
-# HOME
+# HOME PAGE
 # ==================================================
 if page == "🏠 Home":
     st.markdown("""
-    <div class="glass" style="text-align:center;">
-        <h1 style="font-size:46px;">👷 AI-Powered Construction Safety System</h1>
-        <p style="font-size:18px; max-width:900px; margin:auto;">
-        Real-time PPE compliance monitoring using computer vision and YOLOv11.
+    <div class="glass">
+        <h1>👷 AI-Powered Construction Safety</h1>
+        <p>
+        Automated detection of safety helmets and vests at construction sites using YOLOv11.
         </p>
-        <br>
-        <div style="display:flex; justify-content:center; gap:20px;">
-            <span style="background:#FFD369; padding:10px 22px; border-radius:22px; font-weight:700;">🔍 Image Detection</span>
-            <span style="background:#FFD369; padding:10px 22px; border-radius:22px; font-weight:700;">🎥 Video Detection</span>
-            <span style="background:#FFD369; padding:10px 22px; border-radius:22px; font-weight:700;">📷 Live Webcam</span>
-        </div>
     </div>
     """, unsafe_allow_html=True)
 
 # ==================================================
-# IMAGE
+# IMAGE PAGE
 # ==================================================
 elif page == "🔍 Image":
     st.markdown("""
@@ -156,43 +136,26 @@ elif page == "🔍 Image":
     """, unsafe_allow_html=True)
 
     img_file = st.file_uploader("Upload Image", ["jpg", "png", "jpeg"])
-
-    if not img_file:
-        st.markdown("""
-        <div class="glass" style="text-align:center; opacity:0.8;">
-            <h3>📂 No image uploaded</h3>
-            <p>Upload an image to start detection.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
+    if img_file:
         img = np.array(Image.open(img_file))
         results = model(img, conf=confidence, verbose=False)
-
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("### Original Image")
-            st.image(img, use_column_width=True)
-        with col2:
-            st.markdown("### Detection Result")
-            st.image(results[0].plot(), use_column_width=True)
-
-        show_summary(results)
+        st.image(results[0].plot(), use_column_width=True)
 
 # ==================================================
-# VIDEO (CLOUD SAFE PREVIEW)
+# VIDEO PAGE (CLOUD SAFE – PREVIEW MODE)
 # ==================================================
 elif page == "🎥 Video":
     st.markdown("""
     <div class="glass">
         <h2>🎥 Video Detection</h2>
-        <p>Preview-based detection optimized for cloud deployment.</p>
+        <p>Cloud-safe preview mode (no video saving).</p>
     </div>
     """, unsafe_allow_html=True)
 
     vid = st.file_uploader("Upload Video", ["mp4", "avi", "mov"])
 
     if vid:
-        st.info("🧠 Loading video and running detection…")
+        st.info("▶️ Processing video preview…")
 
         tmp = tempfile.NamedTemporaryFile(delete=False)
         tmp.write(vid.read())
@@ -219,18 +182,18 @@ elif page == "🎥 Video":
         st.success("✅ Video preview finished")
 
         st.warning(
-            "Full video export is available in local mode only due to "
-            "codec limitations on Streamlit Cloud."
+            "Full video export is available only in local mode "
+            "due to codec limitations on Streamlit Cloud."
         )
 
 # ==================================================
-# WEBCAM
+# WEBCAM PAGE
 # ==================================================
 elif page == "📷 Webcam":
     st.markdown("""
     <div class="glass">
-        <h2>📷 Live Webcam Detection</h2>
-        <p>Optimized for desktop browsers and CCTV monitoring.</p>
+        <h2>📷 Real-Time Webcam Detection</h2>
+        <p>Desktop browsers recommended.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -250,15 +213,3 @@ elif page == "📷 Webcam":
         video_transformer_factory=YOLOTransformer,
         media_stream_constraints={"video": True, "audio": False},
     )
-
-# ==================================================
-# FOOTER
-# ==================================================
-st.markdown("""
-<hr style="opacity:0.2">
-<p style="text-align:center; opacity:0.7;">
-© 2025 Construction Safety AI System | YOLOv11 · Streamlit
-</p>
-""", unsafe_allow_html=True)
-
-

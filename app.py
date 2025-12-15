@@ -6,18 +6,13 @@ from ultralytics import YOLO
 from PIL import Image
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
-# ⭐ SIDEBAR TOGGLE ADDITION (1)
-if "sidebar_state" not in st.session_state:
-    st.session_state.sidebar_state = "expanded"
-
 # ==================================================
 # PAGE CONFIG
 # ==================================================
 st.set_page_config(
     page_title="Construction Safety – YOLOv11",
     layout="wide",
-    page_icon="🏗️",
-    initial_sidebar_state=st.session_state.sidebar_state  # ⭐ ADDITION (2)
+    page_icon="🏗️"
 )
 
 # ==================================================
@@ -74,7 +69,9 @@ img, video {
     box-shadow: 0 15px 35px rgba(0,0,0,0.6);
 }
 
-/* CUSTOM UPLOAD BOX */
+/* ===========================
+   CUSTOM UPLOAD BOX
+=========================== */
 .upload-box {
     border: 2px dashed rgba(255,255,255,0.4);
     border-radius: 18px;
@@ -83,20 +80,40 @@ img, video {
     color: white;
     background: rgba(20,25,30,0.65);
     margin-bottom: 20px;
+    transition: 0.3s;
+}
+.upload-box:hover {
+    border-color: #FFD369;
+    background: rgba(20,25,30,0.85);
+}
+.upload-icon {
+    font-size: 42px;
+    margin-bottom: 10px;
+}
+.upload-text {
+    font-size: 17px;
+    font-weight: bold;
+}
+.upload-hint {
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+/* ===========================
+   HIDE WEBRTC WHITE BAR ONLY
+=========================== */
+.webrtc-media-container button {
+    display: none !important;
+}
+
+/* ===========================
+   FORCE SIDEBAR TO BE VISIBLE
+=========================== */
+button[kind="header"] {
+    display: block !important;
 }
 </style>
 """, unsafe_allow_html=True)
-
-# ⭐ SIDEBAR TOGGLE ADDITION (3)
-col1, _ = st.columns([1, 11])
-with col1:
-    if st.button("☰"):
-        st.session_state.sidebar_state = (
-            "collapsed"
-            if st.session_state.sidebar_state == "expanded"
-            else "expanded"
-        )
-        st.rerun()
 
 # ==================================================
 # SIDEBAR
@@ -130,6 +147,7 @@ model = load_model()
 # HOME PAGE
 # ==================================================
 if page == "🏠 Home":
+
     st.markdown("""
     <div class="glass" style="text-align:center;">
         <h1 style="font-size:42px;">👷 AI-Powered Construction Safety</h1>
@@ -140,10 +158,37 @@ if page == "🏠 Home":
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div class="glass">
+        <h2>🔍 Project Summary</h2>
+        <p>
+        This project improves safety compliance at construction sites by detecting workers
+        who are not wearing required PPE such as helmets and safety vests.
+        </p>
+        <p>
+        It uses a <b>YOLOv11m</b> object detection model trained on
+        <b>2.2k images</b> from a Roboflow dataset with YOLO default augmentations.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="glass">
+        <h2>🎯 Objectives</h2>
+        <ul>
+            <li>Ensure PPE compliance (Helmet & Vest detection)</li>
+            <li>Provide real-time alerts and monitoring</li>
+            <li>Build a lightweight, deployable AI solution</li>
+            <li>Support image, video, and live webcam detection</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
 # ==================================================
 # IMAGE PAGE
 # ==================================================
 elif page == "🔍 Image":
+
     st.markdown("""
     <div class="glass">
         <h2>📸 Image Detection</h2>
@@ -160,36 +205,34 @@ elif page == "🔍 Image":
 # VIDEO PAGE
 # ==================================================
 elif page == "🎥 Video":
+
     st.markdown("""
     <div class="glass">
         <h2>🎥 Video Detection</h2>
-        <p>Upload a video and preview PPE detection.</p>
+        <p>Upload a video and preview PPE detection (Cloud-safe mode).</p>
     </div>
     """, unsafe_allow_html=True)
 
     vid = st.file_uploader("Upload Video", ["mp4", "avi", "mov"])
     if vid:
-        st.info("▶️ Processing video preview...")
         tmp = tempfile.NamedTemporaryFile(delete=False)
         tmp.write(vid.read())
         cap = cv2.VideoCapture(tmp.name)
-        frame_box = st.empty()
 
+        frame_box = st.empty()
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
-            frame = cv2.resize(frame, (416, 416))
-            frame_box.image(
-                model(frame, conf=confidence)[0].plot(),
-                channels="BGR"
-            )
+            results = model(frame, conf=confidence, verbose=False)
+            frame_box.image(results[0].plot(), channels="BGR")
         cap.release()
 
 # ==================================================
 # WEBCAM PAGE
 # ==================================================
 elif page == "📷 Webcam":
+
     st.markdown("""
     <div class="glass">
         <h2>📷 Real-Time Webcam Detection</h2>
